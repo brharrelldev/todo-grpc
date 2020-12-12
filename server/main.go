@@ -5,6 +5,7 @@ import (
 	"github.com/urfave/cli"
 	"log"
 	"os"
+	"os/signal"
 )
 
 func main() {
@@ -51,6 +52,8 @@ func serverStart(c *cli.Context) error  {
 			return
 		}
 	}()
+
+	signal.Notify(sigChan, os.Interrupt)
 
 	select {
 	case err :=  <- errChan:

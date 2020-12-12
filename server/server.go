@@ -18,6 +18,27 @@ type TodoServer struct {
 	port       string
 }
 
+func (s *TodoServer) GetTodos(ctx context.Context, request *todo_api.GetAllTodoRequest) (*todo_api.GetAllTodoResponse, error) {
+	var todos []*todo_api.Todo
+	todoIter, err := s.db.GetAll()
+	if err != nil{
+		return &todo_api.GetAllTodoResponse{}, status.Error(codes.NotFound, err.Error())
+	}
+
+	for _, i := range todoIter{
+		t := &todo_api.Todo{
+			TaskName: i.TaskName,
+			Done: i.Done,
+		}
+
+		todos = append(todos, t)
+	}
+
+	return &todo_api.GetAllTodoResponse{
+		Todos: todos,
+	}, status.Error(codes.OK, "retrieved successfully")
+}
+
 func NewTodoGRPCServer(host, port string) (*TodoServer, error) {
 	log.Println("initializing database")
 	db, err := NewDatabase()
@@ -71,6 +92,8 @@ func (s *TodoServer) CreateTodo(ctx context.Context, request *todo_api.CreateTod
 	}, status.Error(codes.OK, "successfully created new record")
 }
 
+
+
 func (s *TodoServer) StartServer() error {
 
 	todo_api.RegisterCreateTodoServer(s.grpcServer, s)
@@ -78,6 +101,7 @@ func (s *TodoServer) StartServer() error {
 
 	todo_api.RegisterGetTodoServer(s.grpcServer, s)
 	log.Println("registering rpc method GetTodo")
+	todo_api.RegisterGetAllTodosServer(s.grpcServer, s)
 
 	lis, err := net.Listen("tcp", net.JoinHostPort(s.host, s.port))
 	if err != nil {
@@ -94,10 +118,7 @@ func (s *TodoServer) StartServer() error {
 }
 
 func (s *TodoServer) Close() error  {
-	if err := s.grpcServer.Stop; err != nil{
-		return fmt.Errorf("error stopping server %v", err)
-	}
-
+	defer s.grpcServer.Stop()
 	if err := s.db.db.Close(); err != nil{
 		return fmt.Errorf("error closing db %v", err)
 	}

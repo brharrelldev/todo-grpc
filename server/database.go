@@ -19,8 +19,31 @@ type TodoData struct {
 	Done bool `json:"done"`
 }
 
+type AllTodoData []TodoData
+
+func (t AllTodoData) Iterate() <-chan TodoData  {
+
+	todo := make(chan TodoData)
+	go func() {
+		for _, entry := range t{
+			select {
+			case <-todo:
+				close(todo)
+				return
+			case  todo <- entry:
+
+
+			}
+		}
+		close(todo)
+	}()
+
+	return todo
+
+}
+
 func NewDatabase() (*TodoDatabase, error) {
-	db, err := badger.Open(badger.DefaultOptions("/tmp"))
+	db, err := badger.Open(badger.DefaultOptions("/tmp/todo_db"))
 	if err != nil{
 		return nil, fmt.Errorf("error opening todoDB %v", err)
 	}
@@ -49,9 +72,6 @@ func (todo *TodoDatabase) Add(data *TodoData) (string,error){
 		}
 
 
-		if err := txn.Commit(); err != nil{
-			return fmt.Errorf("transaction could not be commited %v", err)
-		}
 
 
 
@@ -94,4 +114,35 @@ func (todo *TodoDatabase) Get(id string) (*TodoData, error)  {
 
 	return td, nil
 
+}
+
+func (todo *TodoDatabase) GetAll() (AllTodoData, error)  {
+	var todos AllTodoData
+	if err := todo.db.View(func(txn *badger.Txn) error {
+		iter := txn.NewIterator(badger.DefaultIteratorOptions)
+
+		defer iter.Close()
+
+		for iter.Rewind(); iter.Valid(); iter.Next(){
+			entry := iter.Item()
+			val, err := entry.ValueCopy(nil)
+			if err != nil{
+				return fmt.Errorf("error copying value %v", err)
+			}
+
+			t := TodoData{}
+			if err := json.NewDecoder(bytes.NewBuffer(val)).Decode(&t); err != nil{
+				return fmt.Errorf("error creating new decoder %v", err)
+			}
+
+			todos = append(todos, t)
+		}
+
+		return nil
+
+	}); err != nil{
+		return nil, fmt.Errorf("error occured when retrieving entries %v", err)
+	}
+
+	return todos, nil
 }

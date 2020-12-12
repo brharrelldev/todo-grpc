@@ -13,6 +13,13 @@ message GetTodoRequest{
 
 }
 
+message GetAllTodoRequest{
+
+}
+
+message GetAllTodoResponse{
+    repeated Todo todos = 1;
+}
 
 message GetTodoResponse{
     Todo response = 1;
@@ -33,4 +40,8 @@ service CreateTodo{
 
 service GetTodo{
     rpc GetTodo(GetTodoRequest) returns (GetTodoResponse){}
+}
+
+service GetAllTodos{
+    rpc GetTodos(GetAllTodoRequest) returns (GetAllTodoResponse){}
 }
