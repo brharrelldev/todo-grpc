@@ -14,6 +14,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"time"
 )
 
 type Tasks struct {
@@ -61,6 +62,8 @@ func main()  {
 		if c.Bool("list-all"){
 			var data [][]string
 			listAll := todo_api.NewGetAllTodosClient(client)
+
+			start := time.Now()
 			resp, err := listAll.GetTodos(context.Background(),&todo_api.GetAllTodoRequest{})
 			callStatus  := status.Convert(err)
 			if callStatus.Code() != codes.OK{
@@ -76,11 +79,17 @@ func main()  {
 			}
 
 
+			count := 0
 			for _, entries := range data{
 				tw.Append(entries)
+				count++
 			}
 
 			tw.Render()
+			end := time.Since(start).Milliseconds()
+
+			fmt.Println()
+			fmt.Printf("found %d record(s) in %d ms\n", count, end)
 
 
 
@@ -88,10 +97,11 @@ func main()  {
 		}
 
 		if c.Bool("add-task"){
+			start := time.Now()
 			var tasks Tasks
 			addTask := todo_api.NewCreateTodoClient(client)
 
-			buf := make([]byte, 8192)
+			buf := make([]byte, 165000)
 
 			f, err := os.Open("task_data/todo_list.yml")
 			if err != nil{
@@ -111,6 +121,7 @@ func main()  {
 				return fmt.Errorf("error decoding yaml data file %v", err)
 			}
 
+			count := 0
 			for _, task := range tasks.Tasks{
 				req := &todo_api.CreateTodoRequest{
 					TaskName:             task.TaskName,
@@ -124,7 +135,12 @@ func main()  {
 				}
 
 				fmt.Println(resp)
+				count++
 			}
+
+			end := time.Since(start).Milliseconds()
+
+			fmt.Printf("wrote %d record(s) in %d ms ",count, end )
 
 
 
