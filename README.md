@@ -36,7 +36,7 @@ Below is a sample of display
 ![](asset/img.png)
 
 
-#How to compile
+# How to compile
 
 ```bash
 make all
