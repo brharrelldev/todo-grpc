@@ -36,3 +36,17 @@ Below is a sample of display
 ![](asset/img.png)
 
 
+#How to compile
+
+```bash
+make all
+```
+
+This will stage the following files
+
+|client|server|
+-------|---------
+|./bin/todo-client| ./bin/todo-server|
+-------------
+
+
