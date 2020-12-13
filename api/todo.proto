@@ -34,6 +34,14 @@ message CreateTodoResponse{
     string message = 2;
 }
 
+message DeleteTodoRequest{
+    string id = 1;
+}
+
+message DeleteTodoResponse{
+    string message = 1;
+}
+
 service CreateTodo{
     rpc CreateTodo(CreateTodoRequest) returns (CreateTodoResponse){}
 }
@@ -44,4 +52,8 @@ service GetTodo{
 
 service GetAllTodos{
     rpc GetTodos(GetAllTodoRequest) returns (GetAllTodoResponse){}
+}
+
+service DeleteTodo{
+    rpc DeleteTodo(DeleteTodoRequest) returns (DeleteTodoResponse){}
 }

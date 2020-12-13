@@ -18,17 +18,30 @@ type TodoServer struct {
 	port       string
 }
 
+func (s *TodoServer) DeleteTodo(ctx context.Context, request *todo_api.DeleteTodoRequest) (*todo_api.DeleteTodoResponse, error) {
+	id := request.Id
+
+	if err := s.db.DeleteTodo(id); err != nil {
+		return &todo_api.DeleteTodoResponse{}, status.Error(codes.Internal, err.Error())
+	}
+
+	return &todo_api.DeleteTodoResponse{
+		Message: "delete transaction is successful",
+	}, status.Error(codes.OK, "delete transaction is successful")
+}
+
 func (s *TodoServer) GetTodos(ctx context.Context, request *todo_api.GetAllTodoRequest) (*todo_api.GetAllTodoResponse, error) {
 	var todos []*todo_api.Todo
 	todoIter, err := s.db.GetAll()
-	if err != nil{
+	if err != nil {
 		return &todo_api.GetAllTodoResponse{}, status.Error(codes.NotFound, err.Error())
 	}
 
-	for _, i := range todoIter{
+	for _, i := range todoIter {
 		t := &todo_api.Todo{
+			Id: i.Id,
 			TaskName: i.TaskName,
-			Done: i.Done,
+			Done:     i.Done,
 		}
 
 		todos = append(todos, t)
@@ -62,15 +75,15 @@ func (s *TodoServer) GetTodo(ctx context.Context, request *todo_api.GetTodoReque
 	id := request.Id
 
 	t, err := s.db.Get(id)
-	if err != nil{
+	if err != nil {
 		return &todo_api.GetTodoResponse{}, status.Errorf(codes.NotFound, err.Error())
 	}
 
 	resp := &todo_api.GetTodoResponse{
-		Response:            &todo_api.Todo{
-			Id:                   id,
-			TaskName:             t.TaskName,
-			Done:                 t.Done,
+		Response: &todo_api.Todo{
+			Id:       id,
+			TaskName: t.TaskName,
+			Done:     t.Done,
 		},
 	}
 	return resp, status.Error(codes.OK, "record created")
@@ -82,17 +95,15 @@ func (s *TodoServer) CreateTodo(ctx context.Context, request *todo_api.CreateTod
 	}
 
 	id, err := s.db.Add(t)
-	if err != nil{
+	if err != nil {
 		return &todo_api.CreateTodoResponse{}, status.Error(codes.Unknown, err.Error())
 	}
 
 	return &todo_api.CreateTodoResponse{
-		Id:                   id,
-		Message:              "successfully created new record",
+		Id:      id,
+		Message: "successfully created new record",
 	}, status.Error(codes.OK, "successfully created new record")
 }
-
-
 
 func (s *TodoServer) StartServer() error {
 
@@ -101,7 +112,12 @@ func (s *TodoServer) StartServer() error {
 
 	todo_api.RegisterGetTodoServer(s.grpcServer, s)
 	log.Println("registering rpc method GetTodo")
+
 	todo_api.RegisterGetAllTodosServer(s.grpcServer, s)
+	log.Println("registering rpc method GetAllTodos")
+
+	todo_api.RegisterDeleteTodoServer(s.grpcServer, s)
+	log.Println("registering rpc method DeleteTodo")
 
 	lis, err := net.Listen("tcp", net.JoinHostPort(s.host, s.port))
 	if err != nil {
@@ -117,9 +133,9 @@ func (s *TodoServer) StartServer() error {
 
 }
 
-func (s *TodoServer) Close() error  {
+func (s *TodoServer) Close() error {
 	defer s.grpcServer.Stop()
-	if err := s.db.db.Close(); err != nil{
+	if err := s.db.db.Close(); err != nil {
 		return fmt.Errorf("error closing db %v", err)
 	}
 
